@@ -227,7 +227,7 @@ function render() {
         <div class="price">${price ? price.toLocaleString('da-DK') + ' kr.' : 'Pris ukendt'}</div>
         <div class="priority medium">${categoryName || 'Ukendt'}</div>
       </div>
-      ${link ? '<button type="button" class="open" data-link="' + link + '">Se ønskeliste</button>' : ''}
+      ${link ? '<button type="button" class="open" data-link="' + link + '">Vis detaljer</button>' : ''}
     `;
 
     const openBtn = card.querySelector('.open');
