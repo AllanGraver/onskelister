@@ -80,7 +80,7 @@ function stringifyData(data) {
 
 function startPolling() {
   if (pollTimer) return;
-  pollTimer = setInterval(() => loadSheets(), 300000);
+  pollTimer = setInterval(() => loadSheets(), 30000);
 }
 
 async function loadSheets(force = false) {
