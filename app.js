@@ -34,27 +34,29 @@ let sortMode = 'default';
 const datasets = { ...fallback };
 const updated = {};
 const $ = (id) => document.getElementById(id);
+let refreshInProgress = false;
+let pollTimer = null;
 
 function parseCSV(text) {
   const rows = [];
   let row = [];
   let cell = '';
-  let q = false;
+  let inQuotes = false;
 
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
-    const n = text[i + 1];
+    const next = text[i + 1];
 
-    if (c === '"' && q && n === '"') {
+    if (c === '"' && inQuotes && next === '"') {
       cell += '"';
       i++;
     } else if (c === '"') {
-      q = !q;
-    } else if (c === ',' && !q) {
+      inQuotes = !inQuotes;
+    } else if (c === ',' && !inQuotes) {
       row.push(cell);
       cell = '';
-    } else if ((c === '\n' || c === '\r') && !q) {
-      if (c === '\r' && n === '\n') i++;
+    } else if ((c === '\n' || c === '\r') && !inQuotes) {
+      if (c === '\r' && next === '\n') i++;
       row.push(cell);
       if (row.some(v => v !== '')) rows.push(row);
       row = [];
@@ -69,40 +71,56 @@ function parseCSV(text) {
     if (row.some(v => v !== '')) rows.push(row);
   }
 
-  return rows.slice(1).map(r => {
-    const o = {};
-    const headers = rows[0] || [];
-    headers.forEach((h, i) => {
-      o[h.trim().toLowerCase()] = (r[i] || '').trim();
-    });
-    return o;
-  });
+  return rows.length ? rows.slice(1) : [];
 }
 
-async function loadSheets() {
-  await Promise.all(persons.map(async (p) => {
-    const url = C.sheetSources?.[p];
-    if (!url) return;
+function stringifyData(data) {
+  return JSON.stringify(data || []);
+}
 
-    try {
-      const r = await fetch(url, { cache: 'no-store' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => loadSheets(), 300000);
+}
 
-      const text = await r.text();
-      const parsed = parseCSV(text);
-      if (parsed.length) {
-        datasets[p] = parsed;
-        updated[p] = new Date().toLocaleString('da-DK', {
-          dateStyle: 'short',
-          timeStyle: 'short'
-        });
+async function loadSheets(force = false) {
+  if (refreshInProgress && !force) return;
+  refreshInProgress = true;
+
+  let changed = false;
+
+  try {
+    await Promise.all(persons.map(async (p) => {
+      const url = C.sheetSources?.[p];
+      if (!url) return;
+
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+
+        const text = await r.text();
+        const parsed = parseCSV(text);
+        const next = parsed.length ? parsed : [];
+        const previous = stringifyData(datasets[p]);
+        const nextSerialized = stringifyData(next);
+
+        if (previous !== nextSerialized) {
+          datasets[p] = next;
+          updated[p] = new Date().toLocaleString('da-DK', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+          });
+          changed = true;
+        }
+      } catch (e) {
+        console.warn('Kunne ikke hente ' + p + 's Google Sheet:', e);
       }
-    } catch (e) {
-      console.warn('Kunne ikke hente ' + p + 's Google Sheet:', e);
-    }
-  }));
+    }));
+  } finally {
+    refreshInProgress = false;
+  }
 
-  render();
+  if (changed || force) render();
 }
 
 function people() {
@@ -172,18 +190,18 @@ function render() {
   list.forEach((wish) => {
     const card = document.createElement('article');
     card.className = 'card';
-    const priority = wish[2] || '';
-    const price = Number(wish[1]) || 0;
-    const link = wish[5] || '';
+    const title = wish[0] || '';
     const store = wish[2] || '';
+    const price = Number(wish[1]) || 0;
     const categoryName = wish[3] || '';
+    const link = wish[5] || '';
 
     card.innerHTML = `
-      <h3>${wish[0] || ''}</h3>
+      <h3>${title}</h3>
       <p class="note">${store}</p>
       <div class="bottom">
         <div class="price">${price ? price.toLocaleString('da-DK') + ' kr.' : 'Pris ukendt'}</div>
-        <div class="priority ${priority ? 'medium' : ''}">${categoryName || 'Ukendt'}</div>
+        <div class="priority medium">${categoryName || 'Ukendt'}</div>
       </div>
       ${link ? '<button type="button" class="open" data-link="' + link + '">Se ønskeliste</button>' : ''}
     `;
@@ -203,5 +221,5 @@ $('sortSelect').addEventListener('change', (e) => {
 });
 
 render();
-loadSheets();
-setInterval(loadSheets, 300000);
+loadSheets(true);
+startPolling();
