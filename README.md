@@ -1,6 +1,8 @@
 # Familiens ønskelister
 
-Live-side: https://allangraver.github.io/onskelister/
+Live side: https://allangraver.github.io/onskelister/
+
+Dette repo indeholder en enkel hjemmeside til familiernes ønskelister, hvor hver person kan have sin egen liste i Google Sheets.
 
 Upload filerne i denne pakke til roden af dit GitHub repository, fx `onsker`.
 
@@ -35,4 +37,4 @@ Hvis et link er tomt, viser siden fallback-oensker for den person.
 4. Vaelg deployment fra main-branch og `/ (root)`.
 5. Gem. GitHub viser derefter Pages-adressen i Pages-indstillingerne.
 
-Live-side: https://allangraver.github.io/onskelister/
+Live side: https://allangraver.github.io/onskelister/
