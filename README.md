@@ -1,5 +1,7 @@
 # Familiens ønskelister
 
+Live-side: https://allangraver.github.io/onskelister/
+
 Upload filerne i denne pakke til roden af dit GitHub repository, fx `onsker`.
 
 ## Filen du skal redigere
@@ -32,3 +34,5 @@ Hvis et link er tomt, viser siden fallback-oensker for den person.
 3. I repository: Settings > Pages.
 4. Vaelg deployment fra main-branch og `/ (root)`.
 5. Gem. GitHub viser derefter Pages-adressen i Pages-indstillingerne.
+
+Live-side: https://allangraver.github.io/onskelister/
