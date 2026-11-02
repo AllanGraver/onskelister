@@ -88,16 +88,30 @@ function parsePrice(value) {
 
 function getWishData(wish) {
   if (!Array.isArray(wish)) {
-    return { title: '', price: 0, store: '', category: '', link: '' };
+    return { title: '', price: 0, store: '', category: '', note: '', link: '' };
   }
 
-  // This app only supports the Google Sheets column layout published in config.js.
+  const isLegacyFallback = wish.length <= 7;
+
+  if (isLegacyFallback) {
+    return {
+      title: String(wish[0] || ''),
+      price: parsePrice(wish[1]),
+      store: String(wish[2] || ''),
+      category: String(wish[4] || ''),
+      note: String(wish[5] || ''),
+      link: String(wish[6] || '')
+    };
+  }
+
+  // Google Sheets column layout in config.js:
   // A=id, B=navn, C=pris, D=butik, E=prioritet, F=kategori, G=ikon, H=link, I=billede_url, J=aktiv, K=note
   return {
     title: String(wish[1] || ''),
     price: parsePrice(wish[2]),
     store: String(wish[3] || ''),
     category: String(wish[5] || ''),
+    note: String(wish[10] || ''),
     link: String(wish[7] || '')
   };
 }
@@ -218,14 +232,14 @@ function render() {
   list.forEach((wish) => {
     const card = document.createElement('article');
     card.className = 'card';
-    const { title, store, price, category: categoryName, link } = getWishData(wish);
+    const { title, store, price, note, link } = getWishData(wish);
 
     card.innerHTML = `
-      <h3>${title}</h3>
-      <p class="note">${store}</p>
-      <div class="bottom">
+      <div class="card-main">
+        <h3>${title}</h3>
+        <p class="note">${note || ''}</p>
+        <p class="store">${store || ''}</p>
         <div class="price">${price ? price.toLocaleString('da-DK') + ' kr.' : 'Pris ukendt'}</div>
-        <div class="priority medium">${categoryName || 'Ukendt'}</div>
       </div>
       ${link ? '<button type="button" class="open" data-link="' + link + '">Vis detaljer</button>' : ''}
     `;
