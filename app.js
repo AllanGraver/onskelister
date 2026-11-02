@@ -1,13 +1,207 @@
-const C=window.WISH_CONFIG||{sheetSources:{}};
-const fallback={
-Allan:[['SHAPING NEW TOMORROW Ease overshirt',899,'Shaping New Tomorrow','','Tøj','Dark Grey · Str. M',''],['SAYSKY Reflective Pace Vest',749,'SAYSKY','','Løb/Outdoor','Str. M',''],['ORAL-B IO6S eltandbørste',999,'Proshop','','Elektronik','Sort',''],['Milwaukee multiværktøj M18 BMT-0',1035,'10-4','','Værktøj','','']],
-Anne:[['Fusion Womens MERINO 150 LS',0,'Fusion','','Tøj, sko og tilbehør','Sort · Str. L',''],['Saucony Dame Guide løbesko',0,'Saucony','','Tøj, sko og tilbehør','Str. 40,5',''],['Celler deler os',0,'Unipress','','Bøger','Af Lotte Bjergbæk',''],['Yoga-retreat',0,'CathrineYoga / Britt Zives','','Godt & blandet','','']],
-Lukas:[['PlayStation Store voucher',200,'PlayStation Store','','Spil','',''],['Zara - Blue Temptation',259,'Zara','','Duft','',''],['Calvin Klein underbukser (3-pack)',265,'Salling','','Tøj','Str. M',''],['Spejl - LILJETRÄD',99,'IKEA','','Møbler','Sort','']],
-Daniel:[['Penge til gamerudstyr',100,'','','Penge','100 kr. og opefter',''],['10373 - LEGO BOTANICALS - Mini-bonsaitræer',379,'Proshop','','LEGO','',''],['31218 - LEGO ART - Japansk landskab med kirsebærblomster',999,'LEGO.com','','LEGO','',''],['Bleach box set 1 (vol. 1-21)',1295,'Faraos','','Diverse','','']]
+const C = window.WISH_CONFIG || { sheetSources: {} };
+const fallback = {
+  Allan: [
+    ['SHAPING NEW TOMORROW Ease overshirt', 899, 'Shaping New Tomorrow', '', 'Tøj', 'Dark Grey · Str. M', ''],
+    ['SAYSKY Reflective Pace Vest', 749, 'SAYSKY', '', 'Løb/Outdoor', 'Str. M', ''],
+    ['ORAL-B IO6S elite tandenbørste', 999, 'Proshop', '', 'Elektronik', 'Sort', ''],
+    ['Milwaukee multiværktøj M18 BMT-0', 1035, '10-4', '', 'Tøj', 'Sort', ''],
+    ['Lego-dukke', 200, 'Lego', '', 'Lego', 'Str. M', '']
+  ],
+  Anne: [
+    ['Fusion Womens MERINO 150 LS', 0, 'Fusion', '', 'Tøj, sko og tilbehør', 'Sort · Str. L', ''],
+    ['Saucony Dame Guide løbesko', 0, 'Saucony', '', 'Tøj, sko og tilbehør', 'Str. 40,5', ''],
+    ['Celler dele os', 0, 'Unipress', '', 'Bøger', 'Af Lotte Bjerg', ''],
+    ['Yoga-retreat', 0, 'CathrineYoga / Britt Zives', '', 'Godt & blandet', '', '']
+  ],
+  Lukas: [
+    ['PlayStation Store voucher', 200, 'PlayStation Store', '', 'Spil', '', ''],
+    ['Zara - Blue Temptation', 259, 'Zara', '', 'Duft', '', ''],
+    ['Calvin Klein underbukser (3-pack)', 265, 'Salling', '', 'Tøj', 'Str. M', ''],
+    ['Spjell - LILLJETRÆ', 99, 'IKEA', '', 'Møbler', 'Sort', '']
+  ],
+  Daniel: [
+    ['Penge til gamerudstyr', 100, '', '', 'Penge', '100 kr. og opefter', ''],
+    ['10373 - LEGO BOTANICALS - Mini-bonsaitrær', 379, 'Proshop', '', 'LEGO', '', ''],
+    ['31218 - LEGO ART - Japansk landskab med kirsebærblomster', 999, 'LEGO.com', '', 'LEGO', '', ''],
+    ['Bleach box set 1 (vol. 1-21)', 1295, 'Fararos', '', 'Divers', '', '']
+  ]
 };
-const persons=['Allan','Anne','Lukas','Daniel'];let person='Allan',category='Alle',sortMode='default';const datasets={...fallback};const updated={};const $=id=>document.getElementById(id);
-function parseCSV(text){const rows=[];let row=[],cell='',q=false;for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(c==='"'&&q&&n==='"'){cell+='"';i++}else if(c==='"'){q=!q}else if(c===','&&!q){row.push(cell);cell=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&n==='\n')i++;row.push(cell);cell='';if(row.some(v=>v!==''))rows.push(row);row=[]}else cell+=c}row.push(cell);if(row.some(v=>v!==''))rows.push(row);if(rows.length<2)return[];const h=rows[0].map(x=>x.trim().toLowerCase());return rows.slice(1).map(r=>{const o={};h.forEach((k,i)=>o[k]=(r[i]||'').trim());return o}).filter(o=>(o.aktiv||'Ja').toLowerCase()!=='nej').map(o=>[o.navn||'',Number(String(o.pris||'').replace(/[^0-9,.]/g,'').replace('.','').replace(',','.'))||0,o.butik||'',o.prioritet||'',o.kategori||'Andet',o.note||'',o.link||'']);}
-async function loadSheets(){await Promise.all(persons.map(async p=>{const url=C.sheetSources?.[p];if(!url)return;try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const txt=await r.text();const parsed=parseCSV(txt);if(parsed.length)datasets[p]=parsed;updated[p]=new Date().toLocaleString('da-DK',{dateStyle:'long',timeStyle:'short'});}catch(e){console.warn('Kunne ikke hente '+p+'s Google Sheet:',e)}}));render()}
-function people(){const n=$('people');n.innerHTML='';persons.forEach(p=>{const b=document.createElement('button');b.type='button';b.textContent=p;b.className=p===person?'active':'';b.onclick=()=>{person=p;category='Alle';render()};n.append(b)})}
-function render(){people();$('title').textContent=person;$('updated').textContent=updated[person]?'Ønskeliste hentet '+updated[person]:(C.sheetSources?.[person]?'Henter data fra Google Sheet...':'Viser indbyggede ønsker · Google Sheet er ikke tilkoblet');const d=datasets[person]||[];const cats=['Alle',...new Set(d.map(x=>x[4]).filter(Boolean))];$('filters').innerHTML='';cats.forEach(c=>{const b=document.createElement('button');b.type='button';b.className=c===category?'active':'';const n=c==='Alle'?d.length:d.filter(x=>x[4]===c).length;b.innerHTML=c+' <small>'+n+'</small>';b.onclick=()=>{category=c;render()};$('filters').append(b)});let list=(category==='Alle'?d:d.filter(x=>x[4]===category)).slice();if(sortMode==='az')list.sort((a,b)=>a[0].localeCompare(b[0],'da'));if(sortMode==='za')list.sort((a,b)=>b[0].localeCompare(a[0],'da'));if(sortMode==='priceAsc')list.sort((a,b)=>(a[1]||Infinity)-(b[1]||Infinity));if(sortMode==='priceDesc')list.sort((a,b)=>(b[1]||-1)-(a[1]||-1));$('categoryTitle').textContent=category==='Alle'?'Alle ønsker':category;$('count').textContent=list.length+' '+(list.length===1?'ønske':'ønsker');$('grid').innerHTML='';if(!list.length){$('grid').innerHTML='<div class="empty">Ingen ønsker i denne kategori.</div>';return}list.forEach(w=>{const pc=w[3]==='Høj'?'high':w[3]==='Mellem'?'medium':w[3]==='Lav'?'low':'';const card=document.createElement('article');card.className='card';card.innerHTML=`${w[2]?`<div class="store">${w[2]}</div>`:''}<h3>${w[0]}</h3><p class="note">${w[5]||''}</p><div class="bottom"><div><div class="price">${w[1]?new Intl.NumberFormat('da-DK').format(w[1])+' kr.':'Pris ikke angivet'}</div>${w[3]?`<div class="priority ${pc}">${w[3]} prioritet</div>`:''}</div>${w[6]?'<button type="button" class="open">Se ønske →</button>':''}</div>`;const btn=card.querySelector('.open');if(btn)btn.onclick=()=>window.open(w[6],'_blank','noopener,noreferrer');$('grid').append(card)})}
-$('sortSelect').addEventListener('change',e=>{sortMode=e.target.value;render()});render();loadSheets();
+
+const persons = ['Allan', 'Anne', 'Lukas', 'Daniel'];
+let person = 'Allan';
+let category = 'Alle';
+let sortMode = 'default';
+const datasets = { ...fallback };
+const updated = {};
+const $ = (id) => document.getElementById(id);
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let q = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const n = text[i + 1];
+
+    if (c === '"' && q && n === '"') {
+      cell += '"';
+      i++;
+    } else if (c === '"') {
+      q = !q;
+    } else if (c === ',' && !q) {
+      row.push(cell);
+      cell = '';
+    } else if ((c === '\n' || c === '\r') && !q) {
+      if (c === '\r' && n === '\n') i++;
+      row.push(cell);
+      if (row.some(v => v !== '')) rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += c;
+    }
+  }
+
+  if (cell || row.length) {
+    row.push(cell);
+    if (row.some(v => v !== '')) rows.push(row);
+  }
+
+  return rows.slice(1).map(r => {
+    const o = {};
+    const headers = rows[0] || [];
+    headers.forEach((h, i) => {
+      o[h.trim().toLowerCase()] = (r[i] || '').trim();
+    });
+    return o;
+  });
+}
+
+async function loadSheets() {
+  await Promise.all(persons.map(async (p) => {
+    const url = C.sheetSources?.[p];
+    if (!url) return;
+
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+
+      const text = await r.text();
+      const parsed = parseCSV(text);
+      if (parsed.length) {
+        datasets[p] = parsed;
+        updated[p] = new Date().toLocaleString('da-DK', {
+          dateStyle: 'short',
+          timeStyle: 'short'
+        });
+      }
+    } catch (e) {
+      console.warn('Kunne ikke hente ' + p + 's Google Sheet:', e);
+    }
+  }));
+
+  render();
+}
+
+function people() {
+  const n = $('people');
+  n.innerHTML = '';
+  persons.forEach((p) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = p;
+    b.className = p === person ? 'active' : '';
+    b.onclick = () => {
+      person = p;
+      category = 'Alle';
+      render();
+    };
+    n.appendChild(b);
+  });
+}
+
+function render() {
+  people();
+  $('title').textContent = person;
+  $('updated').textContent = updated[person]
+    ? 'Ønskeliste hentet ' + updated[person]
+    : (C.sheetSources?.[person] ? 'Henter data fra Google Sheet...' : 'Viser fallback-data');
+
+  const data = datasets[person] || [];
+  const cats = ['Alle', ...new Set(data.map(item => item[3]).filter(Boolean))];
+
+  const filters = $('filters');
+  filters.innerHTML = '';
+  cats.forEach((c) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = c === category ? 'active' : '';
+    b.textContent = c === 'Alle' ? 'Alle' : c;
+    b.onclick = () => {
+      category = c;
+      render();
+    };
+    filters.appendChild(b);
+  });
+
+  let list = category === 'Alle' ? data : data.filter(item => item[3] === category);
+
+  if (sortMode === 'az') {
+    list = [...list].sort((a, b) => (a[0] || '').localeCompare(b[0] || '', 'da'));
+  } else if (sortMode === 'za') {
+    list = [...list].sort((a, b) => (b[0] || '').localeCompare(a[0] || '', 'da'));
+  } else if (sortMode === 'priceAsc') {
+    list = [...list].sort((a, b) => (Number(a[1]) || 0) - (Number(b[1]) || 0));
+  } else if (sortMode === 'priceDesc') {
+    list = [...list].sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
+  }
+
+  $('categoryTitle').textContent = category === 'Alle' ? 'Alle ønsker' : category;
+  $('count').textContent = list.length + ' ønsker';
+
+  const grid = $('grid');
+  grid.innerHTML = '';
+
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty">Ingen ønsker i denne kategori.</div>';
+    return;
+  }
+
+  list.forEach((wish) => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    const priority = wish[2] || '';
+    const price = Number(wish[1]) || 0;
+    const link = wish[5] || '';
+    const store = wish[2] || '';
+    const categoryName = wish[3] || '';
+
+    card.innerHTML = `
+      <h3>${wish[0] || ''}</h3>
+      <p class="note">${store}</p>
+      <div class="bottom">
+        <div class="price">${price ? price.toLocaleString('da-DK') + ' kr.' : 'Pris ukendt'}</div>
+        <div class="priority ${priority ? 'medium' : ''}">${categoryName || 'Ukendt'}</div>
+      </div>
+      ${link ? '<button type="button" class="open" data-link="' + link + '">Se ønskeliste</button>' : ''}
+    `;
+
+    const openBtn = card.querySelector('.open');
+    if (openBtn) {
+      openBtn.onclick = () => window.open(openBtn.dataset.link, '_blank', 'noopener,noreferrer');
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+$('sortSelect').addEventListener('change', (e) => {
+  sortMode = e.target.value;
+  render();
+});
+
+render();
+loadSheets();
+setInterval(loadSheets, 300000);
