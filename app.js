@@ -86,6 +86,18 @@ function parsePrice(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function isActiveWish(wish) {
+  if (!Array.isArray(wish)) return true;
+
+  if (wish.length <= 10) return true;
+
+  const activeValue = String(wish[9] ?? '').trim().toLowerCase();
+  if (!activeValue) return true;
+
+  const inactiveValues = ['nej', 'no', 'false', '0', 'nein', 'inaktiv', 'disabled', 'deaktiv', 'not active', 'ikke aktiv'];
+  return !inactiveValues.includes(activeValue);
+}
+
 function getWishData(wish) {
   if (!Array.isArray(wish)) {
     return { title: '', price: 0, store: '', category: '', note: '', link: '' };
@@ -142,7 +154,7 @@ async function loadSheets(force = false) {
 
         const text = await r.text();
         const parsed = parseCSV(text.replace(/^\uFEFF/, ''));
-        const next = parsed.filter(row => row && row.some(v => String(v || '').trim() !== ''));
+        const next = parsed.filter(row => row && row.some(v => String(v || '').trim() !== '') && isActiveWish(row));
         const previous = stringifyData(datasets[p]);
         const nextSerialized = stringifyData(next);
 
@@ -189,7 +201,7 @@ function render() {
     ? 'Ønskeliste hentet ' + updated[person]
     : (C.sheetSources?.[person] ? 'Henter data fra Google Sheet...' : 'Viser fallback-data');
 
-  const data = datasets[person] || [];
+  const data = (datasets[person] || []).filter(item => isActiveWish(item));
   const cats = ['Alle', ...new Set(data.map(item => getWishData(item).category).filter(Boolean))];
 
   const filters = $('filters');
