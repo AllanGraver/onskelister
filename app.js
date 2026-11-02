@@ -74,27 +74,47 @@ function parseCSV(text) {
   return rows.length ? rows.slice(1) : [];
 }
 
-function getWishData(wish) {
-  if (!Array.isArray(wish)) return { title: '', price: 0, store: '', category: '', link: '' };
+function parsePrice(value) {
+  if (value === null || value === undefined || value === '') return 0;
 
-  const legacyFormat = Number.isFinite(Number(wish[1])) && !Number.isFinite(Number(wish[0]));
+  const cleaned = String(value)
+    .replace(/[^0-9,.-]/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getWishData(wish) {
+  if (!Array.isArray(wish)) {
+    return { title: '', price: 0, store: '', category: '', link: '' };
+  }
+
+  const legacyFormat =
+    Array.isArray(wish) &&
+    wish.length >= 6 &&
+    !Number.isNaN(Number(wish[0])) &&
+    Number.isNaN(Number(wish[1]));
 
   if (legacyFormat) {
     return {
-      title: wish[0] || '',
-      price: Number(wish[1]) || 0,
-      store: wish[2] || '',
-      category: wish[3] || '',
-      link: wish[5] || ''
+      title: String(wish[0] || ''),
+      price: parsePrice(wish[1]),
+      store: String(wish[2] || ''),
+      category: String(wish[3] || ''),
+      link: String(wish[5] || '')
     };
   }
 
+  // Google Sheets layout:
+  // A=id, B=navn, C=pris, D=butik, E=prioritet, F=kategori, G=ikon, H=link, I=billede_url, J=aktiv, K=note
   return {
-    title: wish[1] || '',
-    price: Number(wish[2]) || 0,
-    store: wish[3] || '',
-    category: wish[5] || '',
-    link: wish[7] || ''
+    title: String(wish[1] || ''),
+    price: parsePrice(wish[2]),
+    store: String(wish[3] || ''),
+    category: String(wish[5] || ''),
+    link: String(wish[7] || '')
   };
 }
 
@@ -124,7 +144,7 @@ async function loadSheets(force = false) {
 
         const text = await r.text();
         const parsed = parseCSV(text.replace(/^\uFEFF/, ''));
-        const next = parsed.length ? parsed : [];
+        const next = parsed.filter(row => row && row.some(v => String(v || '').trim() !== ''));
         const previous = stringifyData(datasets[p]);
         const nextSerialized = stringifyData(next);
 
@@ -172,7 +192,7 @@ function render() {
     : (C.sheetSources?.[person] ? 'Henter data fra Google Sheet...' : 'Viser fallback-data');
 
   const data = datasets[person] || [];
-  const cats = ['Alle', ...new Set(data.map((item) => getWishData(item).category).filter(Boolean))];
+  const cats = ['Alle', ...new Set(data.map(item => getWishData(item).category).filter(Boolean))];
 
   const filters = $('filters');
   filters.innerHTML = '';
@@ -188,7 +208,7 @@ function render() {
     filters.appendChild(b);
   });
 
-  let list = category === 'Alle' ? data : data.filter((item) => getWishData(item).category === category);
+  let list = category === 'Alle' ? data : data.filter(item => getWishData(item).category === category);
 
   if (sortMode === 'az') {
     list = [...list].sort((a, b) => (getWishData(a).title || '').localeCompare(getWishData(b).title || '', 'da'));
