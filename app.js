@@ -74,6 +74,30 @@ function parseCSV(text) {
   return rows.length ? rows.slice(1) : [];
 }
 
+function getWishData(wish) {
+  if (!Array.isArray(wish)) return { title: '', price: 0, store: '', category: '', link: '' };
+
+  const legacyFormat = Number.isFinite(Number(wish[1])) && !Number.isFinite(Number(wish[0]));
+
+  if (legacyFormat) {
+    return {
+      title: wish[0] || '',
+      price: Number(wish[1]) || 0,
+      store: wish[2] || '',
+      category: wish[3] || '',
+      link: wish[5] || ''
+    };
+  }
+
+  return {
+    title: wish[1] || '',
+    price: Number(wish[2]) || 0,
+    store: wish[3] || '',
+    category: wish[5] || '',
+    link: wish[7] || ''
+  };
+}
+
 function stringifyData(data) {
   return JSON.stringify(data || []);
 }
@@ -99,7 +123,7 @@ async function loadSheets(force = false) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
 
         const text = await r.text();
-        const parsed = parseCSV(text);
+        const parsed = parseCSV(text.replace(/^\uFEFF/, ''));
         const next = parsed.length ? parsed : [];
         const previous = stringifyData(datasets[p]);
         const nextSerialized = stringifyData(next);
@@ -148,7 +172,7 @@ function render() {
     : (C.sheetSources?.[person] ? 'Henter data fra Google Sheet...' : 'Viser fallback-data');
 
   const data = datasets[person] || [];
-  const cats = ['Alle', ...new Set(data.map(item => item[3]).filter(Boolean))];
+  const cats = ['Alle', ...new Set(data.map((item) => getWishData(item).category).filter(Boolean))];
 
   const filters = $('filters');
   filters.innerHTML = '';
@@ -164,16 +188,16 @@ function render() {
     filters.appendChild(b);
   });
 
-  let list = category === 'Alle' ? data : data.filter(item => item[3] === category);
+  let list = category === 'Alle' ? data : data.filter((item) => getWishData(item).category === category);
 
   if (sortMode === 'az') {
-    list = [...list].sort((a, b) => (a[0] || '').localeCompare(b[0] || '', 'da'));
+    list = [...list].sort((a, b) => (getWishData(a).title || '').localeCompare(getWishData(b).title || '', 'da'));
   } else if (sortMode === 'za') {
-    list = [...list].sort((a, b) => (b[0] || '').localeCompare(a[0] || '', 'da'));
+    list = [...list].sort((a, b) => (getWishData(b).title || '').localeCompare(getWishData(a).title || '', 'da'));
   } else if (sortMode === 'priceAsc') {
-    list = [...list].sort((a, b) => (Number(a[1]) || 0) - (Number(b[1]) || 0));
+    list = [...list].sort((a, b) => (getWishData(a).price || 0) - (getWishData(b).price || 0));
   } else if (sortMode === 'priceDesc') {
-    list = [...list].sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
+    list = [...list].sort((a, b) => (getWishData(b).price || 0) - (getWishData(a).price || 0));
   }
 
   $('categoryTitle').textContent = category === 'Alle' ? 'Alle ønsker' : category;
@@ -190,11 +214,7 @@ function render() {
   list.forEach((wish) => {
     const card = document.createElement('article');
     card.className = 'card';
-    const title = wish[0] || '';
-    const store = wish[2] || '';
-    const price = Number(wish[1]) || 0;
-    const categoryName = wish[3] || '';
-    const link = wish[5] || '';
+    const { title, store, price, category: categoryName, link } = getWishData(wish);
 
     card.innerHTML = `
       <h3>${title}</h3>
