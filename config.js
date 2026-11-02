@@ -1,9 +1,10 @@
-/* ============================================================
-   DET ER DENNE FIL DU SKAL REDIGERE MED GOOGLE SHEET-LINKS.
-   Indsaet det publicerede CSV-link mellem anfoerselstegnene.
-   Eksempel: Allan: "https://...csv-link..."
-   Tomt link = siden bruger de indbyggede fallback-oensker.
-   ============================================================ */
+/*
+  Google Sheets CSV links for each family member.
+  Expected columns in each sheet:
+  id, navn, pris, butik, prioritet, kategori, ikon, link, billede_url, aktiv, note
+
+  Leave a value empty to fall back to the built-in demo data for that person.
+*/
 window.WISH_CONFIG = {
   sheetSources: {
     Allan: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Tywb5jTQLEOqeo2xsWfPuZZJRz57GYVMexTvRz7F33IaQw6HRkXeSWbybmdzSw/pub?gid=1202622531&single=true&output=csv",
