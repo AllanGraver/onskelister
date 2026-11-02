@@ -91,23 +91,7 @@ function getWishData(wish) {
     return { title: '', price: 0, store: '', category: '', link: '' };
   }
 
-  const legacyFormat =
-    Array.isArray(wish) &&
-    wish.length >= 6 &&
-    !Number.isNaN(Number(wish[0])) &&
-    Number.isNaN(Number(wish[1]));
-
-  if (legacyFormat) {
-    return {
-      title: String(wish[0] || ''),
-      price: parsePrice(wish[1]),
-      store: String(wish[2] || ''),
-      category: String(wish[3] || ''),
-      link: String(wish[5] || '')
-    };
-  }
-
-  // Google Sheets layout:
+  // This app only supports the Google Sheets column layout published in config.js.
   // A=id, B=navn, C=pris, D=butik, E=prioritet, F=kategori, G=ikon, H=link, I=billede_url, J=aktiv, K=note
   return {
     title: String(wish[1] || ''),
