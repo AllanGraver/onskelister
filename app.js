@@ -170,7 +170,7 @@ function setupRefreshButton() {
   const style = document.createElement('style');
   style.textContent = `
     .refresh-button {
-      margin-left: 4px;
+      margin-right: 4px;
       padding: 2px 4px;
       border: 0;
       border-radius: 3px;
@@ -204,7 +204,7 @@ function setupRefreshButton() {
   refreshButton.setAttribute('aria-label', 'Hent nyeste data');
   refreshButton.title = 'Hent nyeste data';
   refreshButton.addEventListener('click', () => loadSheets(true));
-  updatedLabel.insertAdjacentElement('afterend', refreshButton);
+  updatedLabel.insertAdjacentElement('beforebegin', refreshButton);
 }
 
 function startPolling() {
@@ -242,14 +242,12 @@ async function loadSheets(force = false) {
           datasets[p] = next;
           sheetCache[p] = next;
           saveSheetCache(sheetCache);
+          updated[p] = new Date().toLocaleString('da-DK', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+          });
           changed = true;
         }
-
-        // Vis tidspunktet for seneste vellykkede hentning, også hvis dataene er uændrede.
-        updated[p] = new Date().toLocaleString('da-DK', {
-          dateStyle: 'short',
-          timeStyle: 'short'
-        });
       } catch (e) {
         console.warn('Kunne ikke hente ' + p + 's Google Sheet:', e);
       }
