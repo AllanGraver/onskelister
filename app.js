@@ -238,12 +238,18 @@ async function loadSheets(force = false) {
         const next = parsed.filter(row => row && row.some(v => String(v || '').trim() !== '') && isActiveWish(row));
         const previousSerialized = stringifyData(sheetCache[p]);
         const nextSerialized = stringifyData(next);
+        const dataChanged = previousSerialized !== nextSerialized;
 
-        if (previousSerialized !== nextSerialized) {
+        if (dataChanged) {
           datasets[p] = next;
           sheetCache[p] = next;
-          updated[p] = new Date().toISOString();
           saveLocalCache(SHEET_CACHE_KEY, sheetCache);
+          changed = true;
+        }
+
+        const previousTimestamp = updated[p] ? new Date(updated[p]) : null;
+        if (dataChanged || !previousTimestamp || Number.isNaN(previousTimestamp.getTime())) {
+          updated[p] = new Date().toISOString();
           saveLocalCache(UPDATED_CACHE_KEY, updated);
           changed = true;
         }
@@ -298,7 +304,7 @@ function render() {
 
   $('title').textContent = person;
   $('updated').textContent = formattedTimestamp
-    ? 'Opdateret sidst ' + formattedTimestamp
+    ? 'Opdateret sidst: ' + formattedTimestamp
     : (loadErrors[person]
       ? 'Kunne ikke hente data fra Google Sheet'
       : (C.sheetSources?.[person]
