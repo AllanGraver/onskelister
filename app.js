@@ -32,16 +32,19 @@ let person = 'Allan';
 let category = 'Alle';
 let sortMode = 'default';
 const datasets = { ...fallback };
-const SHEET_CACHE_KEY = 'onskelister-sheet-cache-v1';
-const UPDATED_CACHE_KEY = 'onskelister-sheet-updated-v1';
 const $ = (id) => document.getElementById(id);
 let refreshInProgress = false;
 let pollTimer = null;
 let refreshButton = null;
 
+const SHEET_CACHE_KEY = 'onskelister-sheet-cache-v1';
+const UPDATED_CACHE_KEY = 'onskelister-sheet-updated-v1';
+
 function loadLocalCache(key) {
   try {
-    const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+    const raw = localStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch (error) {
     console.warn('Kunne ikke læse lokal cache:', error);
@@ -62,7 +65,9 @@ const updated = loadLocalCache(UPDATED_CACHE_KEY);
 const loadErrors = {};
 
 for (const p of persons) {
-  if (Array.isArray(sheetCache[p])) datasets[p] = sheetCache[p];
+  if (Array.isArray(sheetCache[p])) {
+    datasets[p] = sheetCache[p];
+  }
 }
 
 function parseCSV(text) {
@@ -130,7 +135,9 @@ function getWishData(wish) {
     return { title: '', price: 0, store: '', category: '', note: '', link: '' };
   }
 
-  if (wish.length <= 7) {
+  const isLegacyFallback = wish.length <= 7;
+
+  if (isLegacyFallback) {
     return {
       title: String(wish[0] || ''),
       price: parsePrice(wish[1]),
@@ -141,7 +148,6 @@ function getWishData(wish) {
     };
   }
 
-  // Google Sheets column layout: A=id, B=navn, C=pris, D=butik, E=prioritet, F=kategori, G=ikon, H=link, I=billede_url, J=aktiv, K=note
   return {
     title: String(wish[1] || ''),
     price: String(wish[2] ?? '').trim() === '' ? null : parsePrice(wish[2]),
@@ -197,7 +203,7 @@ function setupRefreshButton() {
   refreshButton.setAttribute('aria-label', 'Hent nyeste data');
   refreshButton.title = 'Hent nyeste data';
   refreshButton.addEventListener('click', () => loadSheets(true));
-  updatedLabel.insertAdjacentElement('beforebegin', refreshButton);
+  updatedLabel.insertAdjacentElement('beforeend', refreshButton);
 }
 
 function startPolling() {
@@ -206,8 +212,9 @@ function startPolling() {
 }
 
 async function loadSheets(force = false) {
-  if (refreshInProgress) return;
+  if (refreshInProgress && !force) return;
   refreshInProgress = true;
+
   if (refreshButton) {
     refreshButton.disabled = true;
     refreshButton.textContent = '…';
@@ -232,7 +239,6 @@ async function loadSheets(force = false) {
         const previousSerialized = stringifyData(sheetCache[p]);
         const nextSerialized = stringifyData(next);
 
-        // Timestamp changes only when the sheet's exported data changes, not on each poll.
         if (previousSerialized !== nextSerialized) {
           datasets[p] = next;
           sheetCache[p] = next;
@@ -254,6 +260,7 @@ async function loadSheets(force = false) {
     }));
   } finally {
     refreshInProgress = false;
+
     if (refreshButton) {
       refreshButton.disabled = false;
       refreshButton.textContent = '↻';
@@ -283,6 +290,7 @@ function people() {
 
 function render() {
   people();
+
   const timestamp = updated[person] ? new Date(updated[person]) : null;
   const formattedTimestamp = timestamp && !Number.isNaN(timestamp.getTime())
     ? timestamp.toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' })
@@ -294,7 +302,7 @@ function render() {
     : (loadErrors[person]
       ? 'Kunne ikke hente data fra Google Sheet'
       : (C.sheetSources?.[person]
-        ? (Array.isArray(sheetCache[person]) ? 'Opdateret sidst: ukendt' : 'Henter data fra Google Sheet...')
+        ? 'Henter data fra Google Sheet...'
         : 'Viser fallback-data'));
 
   const data = (datasets[person] || []).filter(item => isActiveWish(item));
