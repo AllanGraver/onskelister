@@ -120,7 +120,7 @@ function getWishData(wish) {
   // A=id, B=navn, C=pris, D=butik, E=prioritet, F=kategori, G=ikon, H=link, I=billede_url, J=aktiv, K=note
   return {
     title: String(wish[1] || ''),
-    price: parsePrice(wish[2]),
+    price: String(wish[2] ?? '').trim() === '' ? null : parsePrice(wish[2]),
     store: String(wish[3] || ''),
     category: String(wish[5] || ''),
     note: String(wish[10] || ''),
@@ -245,13 +245,16 @@ function render() {
     const card = document.createElement('article');
     card.className = 'card';
     const { title, store, price, note, link } = getWishData(wish);
+    const priceMarkup = price === null
+      ? ''
+      : `<div class="price">${price ? price.toLocaleString('da-DK') + ' kr.' : 'Pris ukendt'}</div>`;
 
     card.innerHTML = `
       <div class="card-main">
         <h3>${title}</h3>
         <p class="note">${note || ''}</p>
         <p class="store">${store || ''}</p>
-        <div class="price">${price ? price.toLocaleString('da-DK') + ' kr.' : 'Pris ukendt'}</div>
+        ${priceMarkup}
       </div>
       ${link ? '<button type="button" class="open" data-link="' + link + '">Vis detaljer</button>' : ''}
     `;
