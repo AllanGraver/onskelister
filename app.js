@@ -37,6 +37,36 @@ const $ = (id) => document.getElementById(id);
 let refreshInProgress = false;
 let pollTimer = null;
 
+const SHEET_CACHE_KEY = 'onskelister-sheet-cache-v1';
+
+function loadSheetCache() {
+  try {
+    const raw = localStorage.getItem(SHEET_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    console.warn('Kunne ikke læse cached Google Sheets-data:', error);
+    return {};
+  }
+}
+
+function saveSheetCache(cache) {
+  try {
+    localStorage.setItem(SHEET_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.warn('Kunne ikke gemme cached Google Sheets-data:', error);
+  }
+}
+
+const sheetCache = loadSheetCache();
+for (const p of persons) {
+  const cached = sheetCache[p];
+  if (Array.isArray(cached)) {
+    datasets[p] = cached;
+  }
+}
+
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -155,11 +185,13 @@ async function loadSheets(force = false) {
         const text = await r.text();
         const parsed = parseCSV(text.replace(/^\uFEFF/, ''));
         const next = parsed.filter(row => row && row.some(v => String(v || '').trim() !== '') && isActiveWish(row));
-        const previous = stringifyData(datasets[p]);
+        const previousSerialized = stringifyData(sheetCache[p]);
         const nextSerialized = stringifyData(next);
 
-        if (previous !== nextSerialized) {
+        if (previousSerialized !== nextSerialized) {
           datasets[p] = next;
+          sheetCache[p] = next;
+          saveSheetCache(sheetCache);
           updated[p] = new Date().toLocaleString('da-DK', {
             dateStyle: 'short',
             timeStyle: 'short'
