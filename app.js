@@ -310,7 +310,7 @@ function render() {
       : (C.sheetSources?.[person]
         ? 'Henter data fra Google Sheet...'
         : 'Viser fallback-data'));
-  if (refreshButton) $('updated').appendChild(refreshButton);
+  if (refreshButton) $('updated').insertBefore(refreshButton, $('updated').firstChild);
 
   const data = (datasets[person] || []).filter(item => isActiveWish(item));
   const cats = ['Alle', ...new Set(data.map(item => getWishData(item).category).filter(Boolean))];
