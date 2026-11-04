@@ -36,6 +36,7 @@ const updated = {};
 const $ = (id) => document.getElementById(id);
 let refreshInProgress = false;
 let pollTimer = null;
+let refreshButton = null;
 
 const SHEET_CACHE_KEY = 'onskelister-sheet-cache-v1';
 
@@ -162,14 +163,56 @@ function stringifyData(data) {
   return JSON.stringify(data || []);
 }
 
+function setupRefreshButton() {
+  const updatedLabel = $('updated');
+  if (!updatedLabel || refreshButton) return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .refresh-button {
+      margin-left: 8px;
+      padding: 3px 8px;
+      border: 1px solid var(--line, #e5e4df);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted, #747c76);
+      font: inherit;
+      font-size: .85em;
+      cursor: pointer;
+    }
+    .refresh-button:hover:not(:disabled) {
+      color: var(--text, #262a27);
+      border-color: var(--muted, #747c76);
+    }
+    .refresh-button:disabled {
+      cursor: wait;
+      opacity: .65;
+    }
+  `;
+  document.head.appendChild(style);
+
+  refreshButton = document.createElement('button');
+  refreshButton.type = 'button';
+  refreshButton.className = 'refresh-button';
+  refreshButton.textContent = '↻ Opdater';
+  refreshButton.setAttribute('aria-label', 'Hent nyeste data');
+  refreshButton.title = 'Hent nyeste data';
+  refreshButton.addEventListener('click', () => loadSheets(true));
+  updatedLabel.insertAdjacentElement('afterend', refreshButton);
+}
+
 function startPolling() {
   if (pollTimer) return;
   pollTimer = setInterval(() => loadSheets(), 30000);
 }
 
 async function loadSheets(force = false) {
-  if (refreshInProgress && !force) return;
+  if (refreshInProgress) return;
   refreshInProgress = true;
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    refreshButton.textContent = 'Henter…';
+  }
 
   let changed = false;
 
@@ -192,18 +235,24 @@ async function loadSheets(force = false) {
           datasets[p] = next;
           sheetCache[p] = next;
           saveSheetCache(sheetCache);
-          updated[p] = new Date().toLocaleString('da-DK', {
-            dateStyle: 'short',
-            timeStyle: 'short'
-          });
           changed = true;
         }
+
+        // Vis tidspunktet for seneste vellykkede hentning, også hvis dataene er uændrede.
+        updated[p] = new Date().toLocaleString('da-DK', {
+          dateStyle: 'short',
+          timeStyle: 'short'
+        });
       } catch (e) {
         console.warn('Kunne ikke hente ' + p + 's Google Sheet:', e);
       }
     }));
   } finally {
     refreshInProgress = false;
+    if (refreshButton) {
+      refreshButton.disabled = false;
+      refreshButton.textContent = '↻ Opdater';
+    }
   }
 
   if (changed || force) render();
@@ -305,6 +354,7 @@ $('sortSelect').addEventListener('change', (e) => {
   render();
 });
 
+setupRefreshButton();
 render();
 loadSheets(true);
 startPolling();
