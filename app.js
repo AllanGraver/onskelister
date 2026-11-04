@@ -33,6 +33,7 @@ let category = 'Alle';
 let sortMode = 'default';
 const datasets = { ...fallback };
 const updated = {};
+const loadErrors = {};
 const $ = (id) => document.getElementById(id);
 let refreshInProgress = false;
 let pollTimer = null;
@@ -222,6 +223,7 @@ async function loadSheets(force = false) {
   }
 
   let changed = false;
+  let statusChanged = false;
 
   try {
     await Promise.all(persons.map(async (p) => {
@@ -242,14 +244,23 @@ async function loadSheets(force = false) {
           datasets[p] = next;
           sheetCache[p] = next;
           saveSheetCache(sheetCache);
-          updated[p] = new Date().toLocaleString('da-DK', {
-            dateStyle: 'short',
-            timeStyle: 'short'
-          });
           changed = true;
+        }
+
+        // Hentetidspunktet skal opdateres ved enhver vellykket hentning,
+        // også når CSV-dataene er identiske med den lokale cache.
+        updated[p] = new Date().toLocaleString('da-DK', {
+          dateStyle: 'short',
+          timeStyle: 'short'
+        });
+        if (loadErrors[p]) {
+          delete loadErrors[p];
+          statusChanged = true;
         }
       } catch (e) {
         console.warn('Kunne ikke hente ' + p + 's Google Sheet:', e);
+        if (!loadErrors[p]) statusChanged = true;
+        loadErrors[p] = true;
       }
     }));
   } finally {
@@ -261,7 +272,7 @@ async function loadSheets(force = false) {
     }
   }
 
-  if (changed || force) render();
+  if (changed || statusChanged || force) render();
 }
 
 function people() {
@@ -286,7 +297,9 @@ function render() {
   $('title').textContent = person;
   $('updated').textContent = updated[person]
     ? 'Ønskeliste hentet ' + updated[person]
-    : (C.sheetSources?.[person] ? 'Henter data fra Google Sheet...' : 'Viser fallback-data');
+    : (loadErrors[person]
+      ? 'Kunne ikke hente data fra Google Sheet'
+      : (C.sheetSources?.[person] ? 'Henter data fra Google Sheet...' : 'Viser fallback-data'));
 
   const data = (datasets[person] || []).filter(item => isActiveWish(item));
   const cats = ['Alle', ...new Set(data.map(item => getWishData(item).category).filter(Boolean))];
