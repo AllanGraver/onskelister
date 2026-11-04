@@ -7,9 +7,9 @@
 */
 window.WISH_CONFIG = {
   sheetSources: {
-    Allan: "https://sheet-proxy.allangraver.workers.dev/Allan",
-    Anne: "https://sheet-proxy.allangraver.workers.dev/Anne",
-    Lukas: "https://sheet-proxy.allangraver.workers.dev/Lukas",
-    Daniel: "https://sheet-proxy.allangraver.workers.dev/Daniel"
+    Allan: "https://sheet-proxy.allangraver.workers.dev/allan",
+    Anne: "https://sheet-proxy.allangraver.workers.dev/anne",
+    Lukas: "https://sheet-proxy.allangraver.workers.dev/lukas",
+    Daniel: "https://sheet-proxy.allangraver.workers.dev/daniel"
   }
 };
