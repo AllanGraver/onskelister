@@ -310,6 +310,10 @@ function render() {
 
   const filters = $('filters');
   filters.innerHTML = '';
+  const label = document.createElement('span');
+  label.className = 'filters-label';
+  label.textContent = 'Kategori:';
+  filters.appendChild(label);
   cats.forEach((c) => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -334,7 +338,7 @@ function render() {
     list = [...list].sort((a, b) => (getWishData(b).price || 0) - (getWishData(a).price || 0));
   }
 
-  $('categoryTitle').textContent = category === 'Alle' ? 'Alle ønsker' : category;
+  $('categoryTitle').textContent = 'Kategori: ' + category;
   $('count').textContent = list.length + ' ønsker';
 
   const grid = $('grid');
