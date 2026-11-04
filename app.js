@@ -170,23 +170,29 @@ function setupRefreshButton() {
   const style = document.createElement('style');
   style.textContent = `
     .refresh-button {
-      margin-left: 8px;
-      padding: 3px 8px;
-      border: 1px solid var(--line, #e5e4df);
-      border-radius: 999px;
+      margin-left: 4px;
+      padding: 2px 4px;
+      border: 0;
+      border-radius: 3px;
       background: transparent;
       color: var(--muted, #747c76);
       font: inherit;
-      font-size: .85em;
+      font-size: .9em;
+      opacity: .7;
       cursor: pointer;
+      vertical-align: baseline;
     }
     .refresh-button:hover:not(:disabled) {
-      color: var(--text, #262a27);
-      border-color: var(--muted, #747c76);
+      color: var(--green, #315c48);
+      opacity: 1;
+    }
+    .refresh-button:focus-visible {
+      outline: 2px solid var(--green, #315c48);
+      outline-offset: 2px;
     }
     .refresh-button:disabled {
       cursor: wait;
-      opacity: .65;
+      opacity: .55;
     }
   `;
   document.head.appendChild(style);
@@ -194,7 +200,7 @@ function setupRefreshButton() {
   refreshButton = document.createElement('button');
   refreshButton.type = 'button';
   refreshButton.className = 'refresh-button';
-  refreshButton.textContent = '↻ Opdater';
+  refreshButton.textContent = '↻';
   refreshButton.setAttribute('aria-label', 'Hent nyeste data');
   refreshButton.title = 'Hent nyeste data';
   refreshButton.addEventListener('click', () => loadSheets(true));
@@ -211,7 +217,8 @@ async function loadSheets(force = false) {
   refreshInProgress = true;
   if (refreshButton) {
     refreshButton.disabled = true;
-    refreshButton.textContent = 'Henter…';
+    refreshButton.textContent = '…';
+    refreshButton.setAttribute('aria-label', 'Henter nyeste data');
   }
 
   let changed = false;
@@ -251,7 +258,8 @@ async function loadSheets(force = false) {
     refreshInProgress = false;
     if (refreshButton) {
       refreshButton.disabled = false;
-      refreshButton.textContent = '↻ Opdater';
+      refreshButton.textContent = '↻';
+      refreshButton.setAttribute('aria-label', 'Hent nyeste data');
     }
   }
 
