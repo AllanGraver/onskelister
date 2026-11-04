@@ -32,41 +32,37 @@ let person = 'Allan';
 let category = 'Alle';
 let sortMode = 'default';
 const datasets = { ...fallback };
-const updated = {};
-const loadErrors = {};
+const SHEET_CACHE_KEY = 'onskelister-sheet-cache-v1';
+const UPDATED_CACHE_KEY = 'onskelister-sheet-updated-v1';
 const $ = (id) => document.getElementById(id);
 let refreshInProgress = false;
 let pollTimer = null;
 let refreshButton = null;
 
-const SHEET_CACHE_KEY = 'onskelister-sheet-cache-v1';
-
-function loadSheetCache() {
+function loadLocalCache(key) {
   try {
-    const raw = localStorage.getItem(SHEET_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch (error) {
-    console.warn('Kunne ikke læse cached Google Sheets-data:', error);
+    console.warn('Kunne ikke læse lokal cache:', error);
     return {};
   }
 }
 
-function saveSheetCache(cache) {
+function saveLocalCache(key, value) {
   try {
-    localStorage.setItem(SHEET_CACHE_KEY, JSON.stringify(cache));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
-    console.warn('Kunne ikke gemme cached Google Sheets-data:', error);
+    console.warn('Kunne ikke gemme lokal cache:', error);
   }
 }
 
-const sheetCache = loadSheetCache();
+const sheetCache = loadLocalCache(SHEET_CACHE_KEY);
+const updated = loadLocalCache(UPDATED_CACHE_KEY);
+const loadErrors = {};
+
 for (const p of persons) {
-  const cached = sheetCache[p];
-  if (Array.isArray(cached)) {
-    datasets[p] = cached;
-  }
+  if (Array.isArray(sheetCache[p])) datasets[p] = sheetCache[p];
 }
 
 function parseCSV(text) {
@@ -120,7 +116,6 @@ function parsePrice(value) {
 
 function isActiveWish(wish) {
   if (!Array.isArray(wish)) return true;
-
   if (wish.length <= 10) return true;
 
   const activeValue = String(wish[9] ?? '').trim().toLowerCase();
@@ -135,9 +130,7 @@ function getWishData(wish) {
     return { title: '', price: 0, store: '', category: '', note: '', link: '' };
   }
 
-  const isLegacyFallback = wish.length <= 7;
-
-  if (isLegacyFallback) {
+  if (wish.length <= 7) {
     return {
       title: String(wish[0] || ''),
       price: parsePrice(wish[1]),
@@ -148,8 +141,7 @@ function getWishData(wish) {
     };
   }
 
-  // Google Sheets column layout in config.js:
-  // A=id, B=navn, C=pris, D=butik, E=prioritet, F=kategori, G=ikon, H=link, I=billede_url, J=aktiv, K=note
+  // Google Sheets column layout: A=id, B=navn, C=pris, D=butik, E=prioritet, F=kategori, G=ikon, H=link, I=billede_url, J=aktiv, K=note
   return {
     title: String(wish[1] || ''),
     price: String(wish[2] ?? '').trim() === '' ? null : parsePrice(wish[2]),
@@ -240,19 +232,16 @@ async function loadSheets(force = false) {
         const previousSerialized = stringifyData(sheetCache[p]);
         const nextSerialized = stringifyData(next);
 
+        // Timestamp changes only when the sheet's exported data changes, not on each poll.
         if (previousSerialized !== nextSerialized) {
           datasets[p] = next;
           sheetCache[p] = next;
-          saveSheetCache(sheetCache);
+          updated[p] = new Date().toISOString();
+          saveLocalCache(SHEET_CACHE_KEY, sheetCache);
+          saveLocalCache(UPDATED_CACHE_KEY, updated);
           changed = true;
         }
 
-        // Hentetidspunktet skal opdateres ved enhver vellykket hentning,
-        // også når CSV-dataene er identiske med den lokale cache.
-        updated[p] = new Date().toLocaleString('da-DK', {
-          dateStyle: 'short',
-          timeStyle: 'short'
-        });
         if (loadErrors[p]) {
           delete loadErrors[p];
           statusChanged = true;
@@ -294,12 +283,19 @@ function people() {
 
 function render() {
   people();
+  const timestamp = updated[person] ? new Date(updated[person]) : null;
+  const formattedTimestamp = timestamp && !Number.isNaN(timestamp.getTime())
+    ? timestamp.toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' })
+    : null;
+
   $('title').textContent = person;
-  $('updated').textContent = updated[person]
-    ? 'Ønskeliste hentet ' + updated[person]
+  $('updated').textContent = formattedTimestamp
+    ? 'Opdateret sidst ' + formattedTimestamp
     : (loadErrors[person]
       ? 'Kunne ikke hente data fra Google Sheet'
-      : (C.sheetSources?.[person] ? 'Henter data fra Google Sheet...' : 'Viser fallback-data'));
+      : (C.sheetSources?.[person]
+        ? (Array.isArray(sheetCache[person]) ? 'Opdateret sidst: ukendt' : 'Henter data fra Google Sheet...')
+        : 'Viser fallback-data'));
 
   const data = (datasets[person] || []).filter(item => isActiveWish(item));
   const cats = ['Alle', ...new Set(data.map(item => getWishData(item).category).filter(Boolean))];
