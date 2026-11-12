@@ -70,8 +70,11 @@ for (const p of persons) {
   }
 }
 
-function hasContentRow(row) {
-  return Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '');
+function hasMeaningfulWishData(row) {
+  if (!Array.isArray(row)) return false;
+
+  const fieldsToCheck = [row[1], row[3], row[5], row[7], row[10]];
+  return fieldsToCheck.some(value => String(value ?? '').trim() !== '');
 }
 
 function parseCSV(text) {
@@ -95,7 +98,7 @@ function parseCSV(text) {
     } else if ((c === '\n' || c === '\r') && !inQuotes) {
       if (c === '\r' && next === '\n') i++;
       row.push(cell);
-      if (hasContentRow(row)) rows.push(row);
+      if (hasMeaningfulWishData(row)) rows.push(row);
       row = [];
       cell = '';
     } else {
@@ -105,7 +108,7 @@ function parseCSV(text) {
 
   if (cell || row.length) {
     row.push(cell);
-    if (hasContentRow(row)) rows.push(row);
+    if (hasMeaningfulWishData(row)) rows.push(row);
   }
 
   return rows.length ? rows.slice(1) : [];
@@ -239,7 +242,7 @@ async function loadSheets(force = false) {
 
         const text = await r.text();
         const parsed = parseCSV(text.replace(/^\uFEFF/, ''));
-        const next = parsed.filter(row => hasContentRow(row) && isActiveWish(row));
+        const next = parsed.filter(row => hasMeaningfulWishData(row) && isActiveWish(row));
         const previousSerialized = stringifyData(sheetCache[p]);
         const nextSerialized = stringifyData(next);
         const dataChanged = previousSerialized !== nextSerialized;
@@ -316,7 +319,8 @@ function render() {
         : 'Viser fallback-data'));
   if (refreshButton) $('updated').insertBefore(refreshButton, $('updated').firstChild);
 
-  const data = (datasets[person] || []).filter(item => hasContentRow(item) && isActiveWish(item));
+  const data = (datasets[person] || [])
+    .filter(item => hasMeaningfulWishData(item) && isActiveWish(item));
   const cats = ['Alle', ...new Set(data.map(item => getWishData(item).category).filter(Boolean))];
 
   const filters = $('filters');
